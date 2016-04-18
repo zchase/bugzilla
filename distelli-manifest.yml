@@ -7,6 +7,10 @@ bmcgehee/bugzilla:
     - ADMIN_PASSWORD: "alexiscool"
     - ADMIN_REALNAME: "Brian McGehee"
     - NO_PAUSE: "1"
+  Build:
+    - echo "Nothing to Build"
+  PkgInclude:
+    - '*'
   PreInstall:
     - if [ -z "$USER" ]; then
     -   echo "You must set env var USER"
