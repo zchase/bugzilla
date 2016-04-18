@@ -1,0 +1,56 @@
+bmcgehee/bugzilla:
+  Env:
+    - USER: "bugzilla"
+    - BUG_PW: "alexiscool"
+    - MYSQL_ROOT: "alexiscool"
+    - ADMIN_EMAIL: "bmcgehee@distelli.com"
+    - ADMIN_PASSWORD: "alexiscool"
+    - ADMIN_REALNAME: "Brian McGehee"
+    - NO_PAUSE: "1"
+  PreInstall:
+    - if [ -z "$USER" ]; then
+    -   echo "You must set env var USER"
+    -   exit 1
+    - fi
+    - doesexist="$(id $USER || true)"
+    - if [[ ${doesexist:0:3} == "uid" ]]; then
+    -   echo "User $USER exists"
+    - else
+    -   echo "User $USER doesn't exist. Creating..."
+    -   sudo useradd $USER
+    - fi
+    - sudo apt-get -y clean
+    - sudo apt-get -y update
+    - 'sudo debconf-set-selections <<< "mysql-server mysql-server/root_password password $MYSQL_ROOT"'
+    - 'sudo debconf-set-selections <<< "mysql-server mysql-server/root_password_again password $MYSQL_ROOT"'
+    - 'sudo apt-get -y install mysql-server'
+    - sudo apt-get -y install apache2 libappconfig-perl libdate-calc-perl libtemplate-perl libmime-perl build-essential libdatetime-timezone-perl libdatetime-perl libemail-sender-perl libemail-mime-perl libemail-mime-modifier-perl libdbi-perl libdbd-mysql-perl libcgi-pm-perl libmath-random-isaac-perl libmath-random-isaac-xs-perl apache2-mpm-prefork libapache2-mod-perl2 libapache2-mod-perl2-dev libchart-perl libxml-perl libxml-twig-perl perlmagick libgd-graph-perl libtemplate-plugin-gd-perl libsoap-lite-perl libhtml-scrubber-perl libjson-rpc-perl libdaemon-generic-perl libtheschwartz-perl libtest-taint-perl libauthen-radius-perl libfile-slurp-perl libencode-detect-perl libmodule-build-perl libnet-ldap-perl libauthen-sasl-perl libtemplate-perl-doc libfile-mimeinfo-perl libhtml-formattext-withlinks-perl libfile-which-perl libgd-dev libmysqlclient-dev lynx-cur graphviz python-sphinx rst2pdf
+    - sudo apt-get -y install git
+    - cd /var/www/html
+    - sudo git clone --branch release-5.0-stable https://git.mozilla.org/bugzilla/bugzilla bugzilla
+    - sudo sed -i "s|max_allowed_packet\t= 16M|max_allowed_packet\t= 100M|g" /etc/mysql/my.cnf
+    - sudo sed -i "s|\[mysqld\]|\[mysqld\]\nft_min_word_len\t= 2|g" /etc/mysql/my.cnf
+    - mysql -u root -p$MYSQL_ROOT -e "GRANT ALL PRIVILEGES ON bugs.* TO bugs@localhost IDENTIFIED BY '$BUG_PW'"
+    - sudo service mysql restart
+    #- cd "$DISTELLI_INSTALLHOME"
+    - sudo mv "$DISTELLI_INSTALLHOME"/bugzilla.conf /etc/apache2/sites-available/
+    - sudo a2ensite bugzilla
+    - sudo a2enmod cgi headers expires
+    - sudo service apache2 restart
+    - cd /var/www/html/bugzilla
+    - sudo /usr/bin/perl install-module.pl DateTime::TimeZone
+    - sudo /usr/bin/perl install-module.pl Email::Sender
+    - sudo /usr/bin/perl install-module.pl PatchReader
+    - sudo /usr/bin/perl install-module.pl Email::Reply
+    - sudo /usr/bin/perl install-module.pl Apache2::SizeLimit
+    - sudo /usr/bin/perl install-module.pl Cache::Memcached
+    - sudo /usr/bin/perl install-module.pl File::Copy::Recursive
+    - sudo ./checksetup.pl
+    - sudo sed -i "s|\$webservergroup = 'apache';|\$webservergroup = 'www-data';|g" localconfig
+    - sudo sed -i "s|\$db_pass = '';|\$db_pass = '$BUG_PW';|g" localconfig
+    #- echo "The next command requires input"
+    - echo "\$answer{'ADMIN_EMAIL'} = '$ADMIN_EMAIL';" > /tmp/bugzilla_install_options.txt
+    - echo "\$answer{'ADMIN_PASSWORD'} = '$ADMIN_PASSWORD';" >> /tmp/bugzilla_install_options.txt
+    - echo "\$answer{'ADMIN_REALNAME'} = '$ADMIN_REALNAME';" >> /tmp/bugzilla_install_options.txt
+    - sudo ./checksetup.pl /tmp/bugzilla_install_options.txt
+    - sudo ./testserver.pl http://localhost/bugzilla
