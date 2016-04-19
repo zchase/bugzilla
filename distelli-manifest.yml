@@ -1,12 +1,5 @@
-bmcgehee/bugzilla:
-  Env:
-    - USER: "bugzilla"
-    - BUG_PW: "alexiscool"
-    - MYSQL_ROOT: "alexiscool"
-    - ADMIN_EMAIL: "bmcgehee@distelli.com"
-    - ADMIN_PASSWORD: "alexiscool"
-    - ADMIN_REALNAME: "Brian McGehee"
-    - NO_PAUSE: "1"
+zchase/bugzilla:
+
   Build:
     - echo "Nothing to Build"
   PkgInclude:
